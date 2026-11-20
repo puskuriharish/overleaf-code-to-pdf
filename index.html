@@ -696,29 +696,75 @@ f(x) = \\frac{1}{\\sigma \\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\
             pdfName = "document";
             pdfNameInput.value = pdfName;
         }
+        const cleanName = pdfName.toLowerCase().endsWith(".pdf") ? pdfName : pdfName + ".pdf";
 
         // UI Loading state
         setLoadingState(true, action === "download" ? "Compiling LaTeX & Preparing PDF..." : "Compiling for Preview...");
         clearError();
         hideStatus();
 
+        // Check if running on GitHub Pages or static host (no Python backend)
+        const isStaticHost = window.location.hostname.includes("github.io") || window.location.protocol === "file:" || !window.location.port;
+
+        if (isStaticHost) {
+            try {
+                const directUrl = "https://latexonline.cc/compile?text=" + encodeURIComponent(code);
+
+                // Update Live Preview Iframe
+                updatePreview(directUrl, directUrl, null);
+
+                // Save to recent history
+                saveToHistory({
+                    id: "cloud-" + Date.now(),
+                    filename: cleanName,
+                    size: 0,
+                    download_url: directUrl,
+                    preview_url: directUrl,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+
+                if (action === "download") {
+                    triggerBrowserDownload(directUrl, cleanName);
+                    showToast("success", "Download Started!", 'Generated "' + cleanName + '" via Cloud Compiler.');
+                } else {
+                    showToast("success", "Preview Ready", 'Rendered "' + cleanName + '" in live viewer.');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("error", "Compilation Error", "Could not compile document.");
+            } finally {
+                setLoadingState(false);
+            }
+            return;
+        }
+
+        // Running on local server or cloud backend (e.g. Render / Docker)
         try {
             const response = await fetch("/api/compile", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     code: code,
-                    pdf_name: pdfName
+                    pdf_name: cleanName
                 })
             });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => null);
+                if (errData && errData.error) {
+                    displayCompilationError(errData);
+                    showToast("error", "Compilation Failed", errData.error);
+                } else {
+                    throw new Error("HTTP " + response.status);
+                }
+                return;
+            }
 
             const data = await response.json();
 
             if (data.success) {
-                // Update Live Preview
                 updatePreview(data.preview_url, data.download_url, data.size_bytes);
 
-                // Add to recent history
                 saveToHistory({
                     id: data.build_id,
                     filename: data.filename,
@@ -729,29 +775,25 @@ f(x) = \\frac{1}{\\sigma \\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\
                 });
 
                 if (action === "download") {
-                    // Trigger instant browser download with the exact requested filename
                     triggerBrowserDownload(data.download_url, data.filename);
-                    showToast("success", "Download Started!", `Generated "${data.filename}" (${formatBytes(data.size_bytes)}).`);
+                    showToast("success", "Download Started!", 'Generated "' + data.filename + '" (' + formatBytes(data.size_bytes) + ').');
                 } else {
-                    showToast("success", "Preview Ready", `Compiled "${data.filename}" successfully.`);
+                    showToast("success", "Preview Ready", 'Compiled "' + data.filename + '" successfully.');
                 }
             } else {
-                // Compilation error
                 displayCompilationError(data);
                 showToast("error", "Compilation Failed", data.error || "Please review syntax errors below.");
             }
         } catch (err) {
-            console.warn("Server API unavailable, using client direct cloud compiler fallback...", err);
+            console.warn("Backend error, falling back to direct cloud compiler...", err);
             try {
-                // Client-side cloud compiler for GitHub Pages & static hosting
-                const cleanName = pdfName.endsWith(".pdf") ? pdfName : pdfName + ".pdf";
                 const directUrl = "https://latexonline.cc/compile?text=" + encodeURIComponent(code);
                 updatePreview(directUrl, directUrl, null);
                 if (action === "download") {
                     triggerBrowserDownload(directUrl, cleanName);
-                    showToast("success", "Download Started!", Generated "" via Cloud Compiler.);
+                    showToast("success", "Download Started!", 'Generated "' + cleanName + '" via Cloud Compiler.');
                 } else {
-                    showToast("success", "Preview Ready", Rendered "" in live viewer.);
+                    showToast("success", "Preview Ready", 'Rendered "' + cleanName + '" in live viewer.');
                 }
             } catch (fallbackErr) {
                 showToast("error", "Compilation Error", "Could not compile document.");
@@ -769,9 +811,13 @@ f(x) = \\frac{1}{\\sigma \\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\
         const a = document.createElement("a");
         a.href = url;
         a.download = filename;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        setTimeout(() => {
+            if (document.body.contains(a)) document.body.removeChild(a);
+        }, 1500);
     }
 
     // Update Live PDF Preview
