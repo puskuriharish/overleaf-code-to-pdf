@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overleaf to PDF Converter | Instant LaTeX Compiler</title>
+    <meta name="description" content="Paste your Overleaf LaTeX code, set your custom PDF filename, and download your publication-ready PDF instantly.">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📄</text></svg>">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        overleaf: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            brand: '#138a07',
+                            dark: '#0e6905'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- CodeMirror for LaTeX -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/stex/stex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+
+    <style>
+/* Custom Styles for Overleaf Code to PDF */
+
+/* CodeMirror adjustments */
+.CodeMirror {
+    height: 380px !important;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace !important;
+    font-size: 13.5px !important;
+    line-height: 1.55 !important;
+    background-color: #020617 !important;
+    color: #e2e8f0 !important;
+}
+
+.CodeMirror-gutters {
+    background-color: #090d1a !important;
+    border-right: 1px solid #1e293b !important;
+}
+
+.CodeMirror-linenumber {
+    color: #475569 !important;
+    padding: 0 8px 0 4px !important;
+}
+
+.CodeMirror-cursor {
+    border-left: 2px solid #22c55e !important;
+}
+
+.CodeMirror-selected {
+    background: rgba(34, 197, 94, 0.25) !important;
+}
+
+.cm-s-dracula span.cm-comment {
+    color: #6272a4 !important;
+    font-style: italic;
+}
+
+.cm-s-dracula span.cm-keyword,
+.cm-s-dracula span.cm-tag {
+    color: #50fa7b !important;
+    font-weight: 600;
+}
+
+.cm-s-dracula span.cm-builtin {
+    color: #8be9fd !important;
+}
+
+.cm-s-dracula span.cm-string {
+    color: #f1fa8c !important;
+}
+
+/* Light Mode Overrides */
+html.light {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+}
+
+html.light body {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+}
+
+html.light header {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border-color: #e2e8f0 !important;
+}
+
+html.light header span.text-white {
+    color: #0f172a !important;
+}
+
+html.light .bg-slate-900 {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+}
+
+html.light .bg-slate-950 {
+    background-color: #f1f5f9 !important;
+}
+
+html.light .text-white {
+    color: #0f172a !important;
+}
+
+html.light .text-slate-300,
+html.light .text-slate-200 {
+    color: #334155 !important;
+}
+
+html.light .text-slate-400 {
+    color: #64748b !important;
+}
+
+html.light .border-slate-800,
+html.light .border-slate-700 {
+    border-color: #cbd5e1 !important;
+}
+
+html.light .CodeMirror {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+}
+
+html.light .CodeMirror-gutters {
+    background-color: #f8fafc !important;
+    border-right-color: #e2e8f0 !important;
+}
+
+html.light .CodeMirror-linenumber {
+    color: #94a3b8 !important;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+/* Animations */
+@keyframes pulseSubtle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.animate-pulse-subtle {
+    animation: pulseSubtle 2s infinite ease-in-out;
+}
+
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-green-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 ring-1 ring-white/20">
+                    <i data-lucide="file-text" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-bold text-lg tracking-tight text-white">Overleaf <span class="text-emerald-400 font-extrabold">&rarr;</span> PDF</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            Fast Compiler
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 hidden sm:block">Compile & Download Overleaf / LaTeX code to publication-ready PDF</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <div id="engine-status" class="hidden sm:flex items-center space-x-2 text-xs bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700/60 text-slate-300">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Local Tectonic Engine: Ready</span>
+                </div>
+
+                <button id="theme-toggle" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Toggle theme">
+                    <i data-lucide="moon" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
+
+        <!-- Banner with Usage Guide -->
+        <div class="bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/20 rounded-2xl p-4 sm:p-5 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                        Overleaf Code to PDF Converter
+                    </h1>
+                    <p class="text-sm text-slate-300 mt-1">
+                        Turn raw Overleaf or LaTeX code into a crisp PDF in 3 simple steps:
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                    <div class="flex items-center gap-1.5 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-200">
+                        <span class="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 font-bold flex items-center justify-center text-xs">1</span>
+                        <span>Paste Code</span>
+                    </div>
+                    <span class="text-slate-600">&rarr;</span>
+                    <div class="flex items-center gap-1.5 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-200">
+                        <span class="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 font-bold flex items-center justify-center text-xs">2</span>
+                        <span>Name PDF</span>
+                    </div>
+                    <span class="text-slate-600">&rarr;</span>
+                    <div class="flex items-center gap-1.5 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-200">
+                        <span class="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 font-bold flex items-center justify-center text-xs">3</span>
+                        <span>Download</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two Column Main Workspace -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+            
+            <!-- LEFT COLUMN: The 3 Core Steps -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+
+                <!-- STEP 1: Paste Overleaf Code -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-3">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-sm">
+                                1
+                            </span>
+                            <h2 class="font-bold text-base text-white">Paste Overleaf / LaTeX Code</h2>
+                        </div>
+                        
+                        <!-- Quick Templates -->
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs text-slate-400 hidden sm:inline">Templates:</span>
+                            <div class="inline-flex rounded-lg bg-slate-800 p-0.5 border border-slate-700 text-xs">
+                                <button type="button" class="template-btn px-2.5 py-1 rounded text-slate-300 hover:text-white hover:bg-slate-700 transition" data-template="article">Article</button>
+                                <button type="button" class="template-btn px-2.5 py-1 rounded text-slate-300 hover:text-white hover:bg-slate-700 transition" data-template="resume">Resume</button>
+                                <button type="button" class="template-btn px-2.5 py-1 rounded text-slate-300 hover:text-white hover:bg-slate-700 transition" data-template="report">Report</button>
+                                <button type="button" class="template-btn px-2.5 py-1 rounded text-slate-300 hover:text-white hover:bg-slate-700 transition" data-template="math">Math</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Editor Action Bar -->
+                    <div class="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-2">
+                        <div class="flex items-center space-x-3">
+                            <button id="btn-paste" class="flex items-center gap-1 text-slate-300 hover:text-emerald-400 transition">
+                                <i data-lucide="clipboard-paste" class="w-3.5 h-3.5"></i>
+                                <span>Paste from Clipboard</span>
+                            </button>
+                            <label for="tex-file-upload" class="flex items-center gap-1 text-slate-300 hover:text-emerald-400 transition cursor-pointer">
+                                <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                                <span>Upload .tex</span>
+                                <input type="file" id="tex-file-upload" accept=".tex,.txt" class="hidden">
+                            </label>
+                            <button id="btn-clear" class="flex items-center gap-1 text-slate-300 hover:text-rose-400 transition">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                <span>Clear</span>
+                            </button>
+                        </div>
+                        <div id="code-stats" class="text-slate-400">
+                            0 lines &middot; 0 chars
+                        </div>
+                    </div>
+
+                    <!-- CodeMirror Container -->
+                    <div class="border border-slate-700 rounded-xl overflow-hidden shadow-inner bg-slate-950 relative">
+                        <textarea id="latex-editor" placeholder="Paste your Overleaf LaTeX code here (e.g. \documentclass{article} ...)" class="w-full h-80 font-mono text-sm p-4 bg-transparent text-slate-200 outline-none resize-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Ask PDF Name -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-sm">
+                                2
+                            </span>
+                            <h2 class="font-bold text-base text-white">Enter PDF Name</h2>
+                        </div>
+                        <span class="text-xs text-slate-400">Auto-appends <code class="text-emerald-400 font-mono">.pdf</code></span>
+                    </div>
+
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i data-lucide="file" class="w-4 h-4"></i>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="pdf-name-input" 
+                            placeholder="e.g. Research_Paper_2026, Jordan_Smith_Resume, Project_Final" 
+                            value="My_Overleaf_Document"
+                            class="w-full pl-10 pr-20 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition font-mono text-sm"
+                        >
+                        <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none">
+                            <span class="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-xs font-mono text-emerald-400 font-bold">.pdf</span>
+                        </div>
+                    </div>
+
+                    <!-- Preset Filename Tags -->
+                    <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400">
+                        <span>Quick names:</span>
+                        <button type="button" class="name-chip px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md border border-slate-700/80 transition" data-name="Overleaf_Document">Overleaf_Document</button>
+                        <button type="button" class="name-chip px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md border border-slate-700/80 transition" data-name="Research_Paper">Research_Paper</button>
+                        <button type="button" class="name-chip px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md border border-slate-700/80 transition" data-name="Curriculum_Vitae">Curriculum_Vitae</button>
+                        <button type="button" class="name-chip px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md border border-slate-700/80 transition" data-name="Technical_Report">Technical_Report</button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Download Button & Actions -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-sm">
+                            3
+                        </span>
+                        <h2 class="font-bold text-base text-white">Generate & Download PDF</h2>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <!-- Primary Download Button -->
+                        <button 
+                            id="btn-download" 
+                            class="flex-1 py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white font-bold text-base shadow-lg shadow-emerald-600/30 hover:shadow-emerald-500/50 flex items-center justify-center gap-2.5 transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                            <i data-lucide="download" class="w-5 h-5"></i>
+                            <span id="btn-download-text">Download PDF</span>
+                        </button>
+
+                        <!-- Secondary Preview Button -->
+                        <button 
+                            id="btn-preview" 
+                            class="py-3.5 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-sm flex items-center justify-center gap-2 transition hover:text-white cursor-pointer"
+                        >
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                            <span>Preview Only</span>
+                        </button>
+                    </div>
+
+                    <!-- Progress / Status Indicator -->
+                    <div id="status-bar" class="hidden p-3.5 rounded-xl text-sm flex items-center gap-3 transition-all duration-300">
+                        <div id="status-icon" class="flex-shrink-0"></div>
+                        <div class="flex-1 min-w-0">
+                            <p id="status-title" class="font-semibold"></p>
+                            <p id="status-desc" class="text-xs opacity-90 truncate"></p>
+                        </div>
+                        <div id="status-action" class="flex-shrink-0"></div>
+                    </div>
+
+                    <!-- Compilation Error Details Accordion (Hidden by default) -->
+                    <div id="error-drawer" class="hidden border border-rose-500/30 bg-rose-950/20 rounded-xl p-4 flex flex-col gap-2">
+                        <div class="flex items-center justify-between text-rose-400">
+                            <div class="flex items-center gap-2 font-semibold text-sm">
+                                <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                                <span id="error-title">Compilation Error</span>
+                            </div>
+                            <span id="error-line-badge" class="hidden px-2 py-0.5 rounded text-xs font-mono bg-rose-500/20 border border-rose-500/40 text-rose-300"></span>
+                        </div>
+                        <p id="error-snippet" class="text-xs font-mono bg-rose-950/50 p-2 rounded border border-rose-900/40 text-rose-200 overflow-x-auto"></p>
+                        
+                        <details class="text-xs text-slate-400 mt-1 cursor-pointer">
+                            <summary class="hover:text-slate-200 py-1 select-none font-medium text-slate-300">View Full LaTeX Compiler Log</summary>
+                            <pre id="error-full-log" class="mt-2 p-3 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 font-mono text-[11px] leading-relaxed max-h-60 overflow-y-auto whitespace-pre-wrap select-text"></pre>
+                        </details>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Interactive Live PDF Preview & History -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+
+                <!-- PDF Preview Panel -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col min-h-[500px]">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="file-check" class="w-4 h-4 text-emerald-400"></i>
+                            <h3 class="font-bold text-sm text-white">Live PDF Preview</h3>
+                            <span id="preview-file-size" class="text-xs text-slate-400 hidden"></span>
+                        </div>
+                        <div class="flex items-center gap-2" id="preview-actions">
+                            <a id="btn-open-new-tab" href="#" target="_blank" class="hidden text-xs text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition">
+                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                <span>Pop out</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- PDF Viewer Container -->
+                    <div id="pdf-container" class="flex-1 rounded-xl border border-slate-800 bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+                        
+                        <!-- Empty Placeholder State -->
+                        <div id="preview-placeholder" class="text-center p-6 flex flex-col items-center max-w-sm">
+                            <div class="w-16 h-16 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center mb-4 text-slate-500 shadow-inner">
+                                <i data-lucide="file-type-2" class="w-8 h-8"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-200 text-sm mb-1">No PDF Generated Yet</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Paste your Overleaf code on the left, name your file, and click <strong class="text-emerald-400">Download PDF</strong> to compile and preview instantly.
+                            </p>
+                            <div class="mt-4 flex flex-wrap justify-center gap-1.5">
+                                <span class="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-slate-400 border border-slate-700">Physics formulas</span>
+                                <span class="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-slate-400 border border-slate-700">Resumes</span>
+                                <span class="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-slate-400 border border-slate-700">Research papers</span>
+                            </div>
+                        </div>
+
+                        <!-- Embedded PDF Frame -->
+                        <iframe id="pdf-iframe" class="w-full h-full rounded-lg border-0 hidden bg-white"></iframe>
+
+                        <!-- Loading Overlay -->
+                        <div id="preview-loader" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3 hidden z-10">
+                            <div class="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+                            <span class="text-xs font-semibold text-emerald-400 animate-pulse tracking-wide" id="loader-status-text">Compiling LaTeX document...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Downloads History Card -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2 text-slate-300 font-bold text-xs uppercase tracking-wider">
+                            <i data-lucide="history" class="w-3.5 h-3.5 text-slate-400"></i>
+                            <span>Recent Exports</span>
+                        </div>
+                        <button id="btn-clear-history" class="text-[11px] text-slate-500 hover:text-rose-400 transition">Clear History</button>
+                    </div>
+                    <div id="history-list" class="space-y-2 text-xs text-slate-400">
+                        <p class="italic text-slate-500 text-center py-2 text-[11px]">Your downloaded documents will be listed here.</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-900/60 py-4 mt-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+            <div class="flex items-center gap-2">
+                <span>Overleaf Code to PDF Converter</span>
+                <span>&middot;</span>
+                <span class="text-emerald-500">Standalone Local Engine</span>
+            </div>
+            <div>
+                Powered by Python & Tectonic Modern LaTeX Compiler
+            </div>
+        </div>
+    </footer>
+
+    <!-- App JavaScript -->
+    <script>
+// Overleaf Code to PDF Converter Frontend Logic
+
+document.addEventListener("DOMContentLoaded", () => {
+    const EMBEDDED_TEMPLATES = {"article": "\\documentclass[11pt,a4paper]{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amsmath,amssymb,amsfonts}\n\\usepackage{graphicx}\n\\usepackage{geometry}\n\\geometry{margin=1in}\n\\usepackage{hyperref}\n\\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=cyan}\n\n\\title{\\textbf{Deep Learning for Scientific Discovery}}\n\\author{\\textbf{Alex Mercer} \\\\ Department of Computer Science \\\\ University of Technology \\\\ \\texttt{alex.mercer@university.edu}}\n\\date{\\today}\n\n\\begin{document}\n\n\\maketitle\n\n\\begin{abstract}\nThis paper demonstrates an end-to-end framework for accelerated scientific modeling using physics-informed neural networks. Overleaf-style LaTeX enables seamless document preparation, mathematical typesetting, and publishing-ready formatting.\n\\end{abstract}\n\n\\section{Introduction}\nScientific computing increasingly relies on hybrid physics-informed neural network (PINN) architectures to solve complex differential equations. We model fluid dynamics using the continuous Navier-Stokes formulation:\n\n\\begin{equation}\n\\frac{\\partial \\mathbf{u}}{\\partial t} + (\\mathbf{u} \\cdot \\nabla)\\mathbf{u} = -\\frac{1}{\\rho}\\nabla p + \\nu \\nabla^2 \\mathbf{u} + \\mathbf{f}\n\\end{equation}\n\nwhere $\\mathbf{u}$ represents velocity, $p$ denotes pressure, $\\rho$ is density, and $\\nu$ is kinematic viscosity.\n\n\\section{Experimental Methodology}\nWe evaluate the performance over $N = 10{,}000$ simulation epochs. Our loss function balances physical conservation laws and boundary conditions:\n\n\\begin{equation}\n\\mathcal{L}_{\\text{total}} = \\lambda_{\\text{data}} \\mathcal{L}_{\\text{data}} + \\lambda_{\\text{pde}} \\mathcal{L}_{\\text{pde}} + \\lambda_{\\text{bc}} \\mathcal{L}_{\\text{bc}}\n\\end{equation}\n\n\\section{Results}\nThe convergence rate is summarized in Table~\\ref{tab:results}.\n\n\\begin{table}[h]\n\\centering\n\\begin{tabular}{|l|c|c|r|}\n\\hline\n\\textbf{Model Architecture} & \\textbf{MSE Loss} & \\textbf{Epochs} & \\textbf{Time (s)} \\\\\n\\hline\nStandard MLP & $2.4 \\times 10^{-3}$ & 5,000 & 42.1 \\\\\nResidual Fourier & $4.1 \\times 10^{-5}$ & 3,200 & 28.6 \\\\\nProposed Hybrid & $\\mathbf{1.2 \\times 10^{-6}}$ & \\textbf{1,850} & \\textbf{19.4} \\\\\n\\hline\n\\end{tabular}\n\\caption{Benchmark comparison of neural PDE solvers.}\n\\label{tab:results}\n\\end{table}\n\n\\section{Conclusion}\nThe proposed hybrid methodology demonstrates a $2.2\\times$ training speedup while retaining sub-millimeter precision across multi-scale boundary layers.\n\n\\end{document}\n", "resume": "\\documentclass[10pt,a4paper]{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{geometry}\n\\geometry{left=0.75in,right=0.75in,top=0.6in,bottom=0.6in}\n\\usepackage{enumitem}\n\\usepackage{hyperref}\n\\usepackage{titlesec}\n\n\\hypersetup{colorlinks=true, urlcolor=blue}\n\\titleformat{\\section}{\\large\\bfseries\\uppercase}{}{0em}{}[\\titlerule]\n\\titlespacing*{\\section}{0pt}{8pt}{4pt}\n\\pagestyle{empty}\n\n\\begin{document}\n\n\\begin{center}\n    {\\Huge \\textbf{JORDAN SMITH}} \\\\ \\vspace{2pt}\n    \\small San Francisco, CA $\\cdot$ (555) 019-2834 $\\cdot$ \\href{mailto:jordan.smith@example.com}{jordan.smith@example.com} $\\cdot$ \\href{https://linkedin.com}{linkedin.com/in/jordansmith} $\\cdot$ \\href{https://github.com}{github.com/jordansmith}\n\\end{center}\n\n\\section{Professional Summary}\nSenior Full-Stack \\& Systems Engineer with 6+ years of experience designing high-throughput distributed systems, modern web platforms, and automated developer tooling. Proven track record leading engineering teams to deliver 99.99\\% uptime services.\n\n\\section{Work Experience}\n\\textbf{Senior Software Engineer} \\hfill \\textit{Jan 2023 -- Present} \\\\\n\\textit{CloudScale Technologies, San Francisco, CA}\n\\begin{itemize}[leftmargin=1.5em, itemsep=1pt]\n    \\item Architected microservices pipeline handling 50M+ requests daily with sub-25ms P99 latency.\n    \\item Reduced cloud infrastructure costs by 38\\% by containerizing workloads with Kubernetes and optimizing resource queries.\n    \\item Mentored 6 junior and mid-level engineers, establishing CI/CD test automation and strict code review standards.\n\\end{itemize}\n\n\\vspace{3pt}\n\\textbf{Software Engineer} \\hfill \\textit{Jun 2020 -- Dec 2022} \\\\\n\\textit{NextGen Data Platforms, Boston, MA}\n\\begin{itemize}[leftmargin=1.5em, itemsep=1pt]\n    \\item Developed full-stack real-time analytics dashboard with React, TypeScript, and Python FastAPI.\n    \\item Built Redis-backed caching system that reduced primary database load by 60\\%.\n\\end{itemize}\n\n\\section{Education}\n\\textbf{Bachelor of Science in Computer Science} \\hfill \\textit{2016 -- 2020} \\\\\nUniversity of California, Berkeley \\hfill GPA: 3.85 / 4.0\n\n\\section{Technical Skills}\n\\textbf{Languages:} Python, TypeScript, JavaScript, C++, SQL, Go, LaTeX \\\\\n\\textbf{Frameworks \\& Tools:} React, Node.js, Flask, FastAPI, Docker, Kubernetes, AWS, Git, PostgreSQL, Redis\n\n\\end{document}\n", "report": "\\documentclass[12pt,a4paper]{report}\n\\usepackage[utf8]{inputenc}\n\\usepackage{geometry}\n\\geometry{margin=1in}\n\\usepackage{fancyhdr}\n\\usepackage{amsmath}\n\\usepackage{hyperref}\n\n\\pagestyle{fancy}\n\\fancyhf{}\n\\rhead{Project Performance Audit}\n\\lhead{Q4 Engineering Review}\n\\rfoot{Page \\thepage}\n\n\\title{\\Huge \\textbf{Technical Architecture Report} \\\\ \\vspace{10pt} \\Large Cloud Migration and Scalability Assessment}\n\\author{\\textbf{Enterprise Solutions Architecture Team}}\n\\date{November 2026}\n\n\\begin{document}\n\n\\maketitle\n\n\\chapter{Executive Overview}\nThis report outlines the technical strategy, risk mitigation procedures, and architectural evolution required to support 100,000 concurrent active users.\n\n\\section{Current Bottlenecks}\nOur legacy monolith exhibits high memory saturation during peak loads due to:\n\\begin{enumerate}\n    \\item Synchronous report generation blocking HTTP worker threads.\n    \\item Monolithic database connections lacking pooling and read-replica distribution.\n    \\item Inadequate client-side caching headers.\n\\end{enumerate}\n\n\\chapter{Proposed Target Architecture}\nThe recommended architecture migrates stateless services to auto-scaling clusters backed by asynchronous message queues.\n\n\\begin{equation}\n\\text{Throughput Capacity} = \\min\\left( R_{\\text{ingress}}, \\frac{N_{\\text{workers}}}{\\tau_{\\text{task}}} \\right)\n\\end{equation}\n\n\\section{Next Milestones}\nPhased rollout commences with Canary traffic split (10\\%) in Stage 1, expanding to full production cutover by Quarter 1.\n\n\\end{document}\n", "math": "\\documentclass[11pt]{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amsmath,amssymb,amsthm}\n\\usepackage{geometry}\n\\geometry{margin=0.9in}\n\n\\theoremstyle{definition}\n\\newtheorem{theorem}{Theorem}\n\\newtheorem{lemma}{Lemma}\n\n\\title{\\textbf{Advanced Mathematics Cheatsheet \\& Formulas}}\n\\author{Mathematical Foundations}\n\\date{\\today}\n\n\\begin{document}\n\\maketitle\n\n\\section{Multivariable Calculus \\& Differential Forms}\nStokes' Theorem establishes the fundamental relation between boundary integrals and exterior derivatives:\n\\begin{equation}\n\\int_{\\partial \\Omega} \\omega = \\int_{\\Omega} d\\omega\n\\end{equation}\n\nThe Cauchy-Schwarz Inequality holds for all vectors $u, v$ in an inner product space:\n\\begin{equation}\n|\\langle u, v \\rangle|^2 \\le \\langle u, u \\rangle \\cdot \\langle v, v \\rangle\n\\end{equation}\n\n\\section{Fourier Transform \\& Spectral Analysis}\nThe continuous Fourier transform and its inverse representation:\n\\begin{align}\n\\hat{f}(\\xi) &= \\int_{-\\infty}^{\\infty} f(x) e^{-2\\pi i x \\xi} \\, dx \\\\\nf(x) &= \\int_{-\\infty}^{\\infty} \\hat{f}(\\xi) e^{2\\pi i x \\xi} \\, d\\xi\n\\end{align}\n\n\\section{Euler's Identity \\& Complex Analysis}\n\\begin{equation}\ne^{i\\pi} + 1 = 0 \\quad \\text{and} \\quad \\zeta(s) = \\sum_{n=1}^\\infty \\frac{1}{n^s} = \\prod_{p \\text{ prime}} \\frac{1}{1 - p^{-s}}\n\\end{equation}\n\n\\end{document}\n"};
+
+    // DOM Elements
+    const textarea = document.getElementById("latex-editor");
+    const pdfNameInput = document.getElementById("pdf-name-input");
+    const btnDownload = document.getElementById("btn-download");
+    const btnDownloadText = document.getElementById("btn-download-text");
+    const btnPreview = document.getElementById("btn-preview");
+    const btnPaste = document.getElementById("btn-paste");
+    const btnClear = document.getElementById("btn-clear");
+    const fileUpload = document.getElementById("tex-file-upload");
+    const codeStats = document.getElementById("code-stats");
+    const templateButtons = document.querySelectorAll(".template-btn");
+    const nameChips = document.querySelectorAll(".name-chip");
+    
+    // Status & Error Elements
+    const statusBar = document.getElementById("status-bar");
+    const statusIcon = document.getElementById("status-icon");
+    const statusTitle = document.getElementById("status-title");
+    const statusDesc = document.getElementById("status-desc");
+    const statusAction = document.getElementById("status-action");
+    
+    const errorDrawer = document.getElementById("error-drawer");
+    const errorTitle = document.getElementById("error-title");
+    const errorSnippet = document.getElementById("error-snippet");
+    const errorLineBadge = document.getElementById("error-line-badge");
+    const errorFullLog = document.getElementById("error-full-log");
+
+    // Preview Elements
+    const pdfContainer = document.getElementById("pdf-container");
+    const pdfIframe = document.getElementById("pdf-iframe");
+    const previewPlaceholder = document.getElementById("preview-placeholder");
+    const previewLoader = document.getElementById("preview-loader");
+    const loaderStatusText = document.getElementById("loader-status-text");
+    const previewFileSize = document.getElementById("preview-file-size");
+    const btnOpenNewTab = document.getElementById("btn-open-new-tab");
+    const historyList = document.getElementById("history-list");
+    const btnClearHistory = document.getElementById("btn-clear-history");
+    const themeToggle = document.getElementById("theme-toggle");
+
+    let lastErrorMarker = null;
+
+    // 1. Initialize CodeMirror Editor
+    const editor = CodeMirror.fromTextArea(textarea, {
+        mode: "stex",
+        theme: "dracula",
+        lineNumbers: true,
+        lineWrapping: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        indentUnit: 4,
+        tabSize: 4
+    });
+
+    // Update stats on code change
+    function updateCodeStats() {
+        const text = editor.getValue();
+        const lines = editor.lineCount();
+        const chars = text.length;
+        codeStats.textContent = `${lines} ${lines === 1 ? 'line' : 'lines'} · ${chars.toLocaleString()} chars`;
+    }
+    editor.on("change", updateCodeStats);
+
+    // Initial starter document
+    const defaultStarter = `\\documentclass[11pt,a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{amsmath,amssymb}
+\\usepackage{geometry}
+\\geometry{margin=1in}
+\\usepackage{hyperref}
+
+\\title{\\textbf{My Overleaf Document to PDF}}
+\\author{\\textbf{Researcher / Student}}
+\\date{\\today}
+
+\\begin{document}
+
+\\maketitle
+
+\\begin{abstract}
+Welcome! This document was compiled from Overleaf LaTeX code straight to PDF. You can paste any LaTeX code, enter a custom PDF file name, and click Download PDF.
+\\end{abstract}
+
+\\section{Mathematical Equation Example}
+The Gaussian normal distribution function is given by:
+\\begin{equation}
+f(x) = \\frac{1}{\\sigma \\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}
+\\end{equation}
+
+\\section{Features}
+\\begin{itemize}
+    \\item ⚡ Ultra-fast local compilation via Tectonic engine.
+    \\item 🏷️ Custom naming for your exported PDF document.
+    \\item 👁️ Live embedded PDF preview panel.
+    \\item 🔍 Automatic syntax error detection and log inspector.
+\\end{itemize}
+
+\\end{document}
+`;
+
+    editor.setValue(defaultStarter);
+    updateCodeStats();
+
+    // 2. Template Selector
+    templateButtons.forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const templateType = btn.getAttribute("data-template");
+            try {
+                btn.classList.add("opacity-50");
+                const res = await fetch(`/api/template/${templateType}`);
+                const data = await res.json();
+                if (data.success && data.code) {
+                    editor.setValue(data.code);
+                    clearError();
+                    hideStatus();
+                    
+                    // Also suggest an appropriate PDF name
+                    const nameMap = {
+                        "article": "Scientific_Research_Paper",
+                        "resume": "Professional_Resume_CV",
+                        "report": "Technical_Architecture_Report",
+                        "math": "Mathematics_Cheatsheet"
+                    };
+                    if (nameMap[templateType]) {
+                        pdfNameInput.value = nameMap[templateType];
+                    }
+                    showToast("success", "Template Loaded", `Loaded ${templateType.toUpperCase()} template.`);
+                }
+            } catch (err) {
+                showToast("error", "Failed to Load", "Could not fetch template.");
+            } finally {
+                btn.classList.remove("opacity-50");
+            }
+        });
+    });
+
+    // 3. Name Chips click handler
+    nameChips.forEach(chip => {
+        chip.addEventListener("click", () => {
+            const name = chip.getAttribute("data-name");
+            pdfNameInput.value = name;
+            pdfNameInput.focus();
+        });
+    });
+
+    // 4. Paste from Clipboard
+    btnPaste.addEventListener("click", async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (text && text.trim()) {
+                editor.setValue(text);
+                showToast("success", "Pasted", "Code inserted from clipboard.");
+            } else {
+                showToast("info", "Clipboard Empty", "No text found in clipboard.");
+            }
+        } catch (err) {
+            // Fallback
+            editor.focus();
+            showToast("info", "Paste Shortcut", "Press Ctrl+V to paste into the editor.");
+        }
+    });
+
+    // 5. File Upload (.tex)
+    fileUpload.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            editor.setValue(event.target.result);
+            // Suggest file name from uploaded file
+            const baseName = file.name.replace(/\.[^/.]+$/, "");
+            pdfNameInput.value = baseName;
+            showToast("success", "File Loaded", `Loaded ${file.name}`);
+        };
+        reader.readAsText(file);
+    });
+
+    // 6. Clear Editor
+    btnClear.addEventListener("click", () => {
+        if (confirm("Are you sure you want to clear the editor?")) {
+            editor.setValue("");
+            clearError();
+            hideStatus();
+        }
+    });
+
+    // 7. Compilation & Download Handler
+    async function handleCompile(action = "download") {
+        const code = editor.getValue().trim();
+        if (!code) {
+            showToast("error", "Missing Code", "Please paste or enter LaTeX code first.");
+            editor.focus();
+            return;
+        }
+
+        let pdfName = pdfNameInput.value.trim();
+        if (!pdfName) {
+            pdfName = "document";
+            pdfNameInput.value = pdfName;
+        }
+
+        // UI Loading state
+        setLoadingState(true, action === "download" ? "Compiling LaTeX & Preparing PDF..." : "Compiling for Preview...");
+        clearError();
+        hideStatus();
+
+        try {
+            const response = await fetch("/api/compile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    code: code,
+                    pdf_name: pdfName
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Update Live Preview
+                updatePreview(data.preview_url, data.download_url, data.size_bytes);
+
+                // Add to recent history
+                saveToHistory({
+                    id: data.build_id,
+                    filename: data.filename,
+                    size: data.size_bytes,
+                    download_url: data.download_url,
+                    preview_url: data.preview_url,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+
+                if (action === "download") {
+                    // Trigger instant browser download with the exact requested filename
+                    triggerBrowserDownload(data.download_url, data.filename);
+                    showToast("success", "Download Started!", `Generated "${data.filename}" (${formatBytes(data.size_bytes)}).`);
+                } else {
+                    showToast("success", "Preview Ready", `Compiled "${data.filename}" successfully.`);
+                }
+            } else {
+                // Compilation error
+                displayCompilationError(data);
+                showToast("error", "Compilation Failed", data.error || "Please review syntax errors below.");
+            }
+        } catch (err) {
+            console.warn("Server API unavailable, using client direct cloud compiler fallback...", err);
+            try {
+                // Client-side cloud compiler for GitHub Pages & static hosting
+                const cleanName = pdfName.endsWith(".pdf") ? pdfName : pdfName + ".pdf";
+                const directUrl = "https://latexonline.cc/compile?text=" + encodeURIComponent(code);
+                updatePreview(directUrl, directUrl, null);
+                if (action === "download") {
+                    triggerBrowserDownload(directUrl, cleanName);
+                    showToast("success", "Download Started!", Generated "" via Cloud Compiler.);
+                } else {
+                    showToast("success", "Preview Ready", Rendered "" in live viewer.);
+                }
+            } catch (fallbackErr) {
+                showToast("error", "Compilation Error", "Could not compile document.");
+            }
+        } finally {
+            setLoadingState(false);
+        }
+    }
+
+    btnDownload.addEventListener("click", () => handleCompile("download"));
+    btnPreview.addEventListener("click", () => handleCompile("preview"));
+
+    // Download helper
+    function triggerBrowserDownload(url, filename) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // Update Live PDF Preview
+    function updatePreview(previewUrl, downloadUrl, sizeBytes) {
+        previewPlaceholder.classList.add("hidden");
+        pdfIframe.classList.remove("hidden");
+        pdfIframe.src = previewUrl;
+
+        if (sizeBytes) {
+            previewFileSize.textContent = formatBytes(sizeBytes);
+            previewFileSize.classList.remove("hidden");
+        }
+
+        btnOpenNewTab.href = previewUrl;
+        btnOpenNewTab.classList.remove("hidden");
+    }
+
+    // Set Loading State
+    function setLoadingState(isLoading, message = "Compiling LaTeX...") {
+        if (isLoading) {
+            btnDownload.disabled = true;
+            btnPreview.disabled = true;
+            btnDownloadText.textContent = "Compiling PDF...";
+            previewLoader.classList.remove("hidden");
+            loaderStatusText.textContent = message;
+        } else {
+            btnDownload.disabled = false;
+            btnPreview.disabled = false;
+            btnDownloadText.textContent = "Download PDF";
+            previewLoader.classList.add("hidden");
+        }
+    }
+
+    // Toast & Status Banner
+    function showToast(type, title, message) {
+        statusBar.className = "p-3.5 rounded-xl text-sm flex items-center gap-3 transition-all duration-300";
+        statusAction.innerHTML = "";
+
+        if (type === "success") {
+            statusBar.classList.add("bg-emerald-950/40", "border", "border-emerald-500/30", "text-emerald-200");
+            statusIcon.innerHTML = `<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+        } else if (type === "error") {
+            statusBar.classList.add("bg-rose-950/40", "border", "border-rose-500/30", "text-rose-200");
+            statusIcon.innerHTML = `<svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+        } else {
+            statusBar.classList.add("bg-slate-800", "border", "border-slate-700", "text-slate-200");
+            statusIcon.innerHTML = `<svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+        }
+
+        statusTitle.textContent = title;
+        statusDesc.textContent = message;
+        statusBar.classList.remove("hidden");
+    }
+
+    function hideStatus() {
+        statusBar.classList.add("hidden");
+    }
+
+    // Display Compilation Error
+    function displayCompilationError(data) {
+        errorTitle.textContent = data.error || "Compilation Error";
+        
+        if (data.line) {
+            errorLineBadge.textContent = `Line ${data.line}`;
+            errorLineBadge.classList.remove("hidden");
+            
+            // Highlight line in CodeMirror
+            const lineIndex = data.line - 1;
+            editor.setCursor({ line: lineIndex, ch: 0 });
+            editor.scrollIntoView({ line: lineIndex, ch: 0 }, 100);
+            
+            if (lastErrorMarker) lastErrorMarker.clear();
+            lastErrorMarker = editor.markText(
+                { line: lineIndex, ch: 0 },
+                { line: lineIndex, ch: 100 },
+                { className: "bg-rose-500/30 border-b-2 border-rose-500" }
+            );
+        } else {
+            errorLineBadge.classList.add("hidden");
+        }
+
+        if (data.snippet) {
+            errorSnippet.textContent = data.snippet;
+            errorSnippet.classList.remove("hidden");
+        } else {
+            errorSnippet.classList.add("hidden");
+        }
+
+        errorFullLog.textContent = data.logs || "No logs available.";
+        errorDrawer.classList.remove("hidden");
+        errorDrawer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function clearError() {
+        errorDrawer.classList.add("hidden");
+        if (lastErrorMarker) {
+            lastErrorMarker.clear();
+            lastErrorMarker = null;
+        }
+    }
+
+    // Helper: Format bytes
+    function formatBytes(bytes, decimals = 1) {
+        if (!bytes || bytes === 0) return "0 B";
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+    }
+
+    // 8. History Management via LocalStorage
+    const HISTORY_KEY = "overleaf_pdf_history_v1";
+
+    function loadHistory() {
+        try {
+            const raw = localStorage.getItem(HISTORY_KEY);
+            const items = raw ? JSON.parse(raw) : [];
+            renderHistory(items);
+        } catch (e) {
+            console.error("Failed to load history", e);
+        }
+    }
+
+    function saveToHistory(item) {
+        try {
+            const raw = localStorage.getItem(HISTORY_KEY);
+            let items = raw ? JSON.parse(raw) : [];
+            // prepend and limit to 5
+            items = [item, ...items.filter(x => x.filename !== item.filename)].slice(0, 6);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+            renderHistory(items);
+        } catch (e) {
+            console.error("Failed to save history", e);
+        }
+    }
+
+    function renderHistory(items) {
+        if (!items || items.length === 0) {
+            historyList.innerHTML = `<p class="italic text-slate-500 text-center py-2 text-[11px]">Your downloaded documents will be listed here.</p>`;
+            return;
+        }
+
+        historyList.innerHTML = items.map(item => `
+            <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition group">
+                <div class="flex items-center gap-2 min-w-0">
+                    <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    <div class="truncate">
+                        <span class="font-medium text-slate-200 text-xs block truncate" title="${item.filename}">${item.filename}</span>
+                        <span class="text-[10px] text-slate-500">${formatBytes(item.size)} · ${item.time}</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <button class="history-preview-btn p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800" data-preview="${item.preview_url}" data-name="${item.filename}" title="Preview in viewer">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    </button>
+                    <a href="${item.download_url}" download="${item.filename}" class="p-1 text-slate-400 hover:text-emerald-400 rounded hover:bg-slate-800" title="Download">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    </a>
+                </div>
+            </div>
+        `).join("");
+
+        // Attach preview listeners
+        document.querySelectorAll(".history-preview-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const previewUrl = btn.getAttribute("data-preview");
+                pdfIframe.src = previewUrl;
+                previewPlaceholder.classList.add("hidden");
+                pdfIframe.classList.remove("hidden");
+                btnOpenNewTab.href = previewUrl;
+                btnOpenNewTab.classList.remove("hidden");
+            });
+        });
+    }
+
+    btnClearHistory.addEventListener("click", () => {
+        localStorage.removeItem(HISTORY_KEY);
+        renderHistory([]);
+    });
+
+    // 9. Light/Dark Theme toggle
+    themeToggle.addEventListener("click", () => {
+        const isLight = document.documentElement.classList.toggle("light");
+        editor.setOption("theme", isLight ? "eclipse" : "dracula");
+        themeToggle.innerHTML = isLight 
+            ? `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>`
+            : `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>`;
+    });
+
+    // Initialize history
+    loadHistory();
+});
+
+</script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
