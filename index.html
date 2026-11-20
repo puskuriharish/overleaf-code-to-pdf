@@ -586,10 +586,10 @@ f(x) = \\frac{1}{\\sigma \\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\
 
 \\section{Features}
 \\begin{itemize}
-    \\item ⚡ Ultra-fast local compilation via Tectonic engine.
-    \\item 🏷️ Custom naming for your exported PDF document.
-    \\item 👁️ Live embedded PDF preview panel.
-    \\item 🔍 Automatic syntax error detection and log inspector.
+    \\item Ultra-fast local and cloud compilation engine.
+    \\item Custom naming for your exported PDF document.
+    \\item Live embedded PDF preview panel.
+    \\item Automatic syntax error detection and log inspector.
 \\end{itemize}
 
 \\end{document}
@@ -682,9 +682,12 @@ f(x) = \\frac{1}{\\sigma \\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\
         }
     });
 
-    // Client-side auto-repair for common LaTeX mistakes (e.g. missing amsmath for \text, unescaped &)
+    // Client-side auto-repair for common LaTeX mistakes (e.g. missing amsmath for \text, unescaped &, emojis)
     function autoRepairLatex(latex) {
         let repaired = latex;
+        // Strip emojis that break pdflatex
+        repaired = repaired.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, "");
+
         if (repaired.includes("\\text{") && !repaired.includes("amsmath")) {
             if (repaired.includes("\\begin{document}")) {
                 repaired = repaired.replace("\\begin{document}", "\\usepackage{amsmath}\n\\begin{document}");
