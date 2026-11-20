@@ -682,14 +682,44 @@ f(x) = \\frac{1}{\\sigma \\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\
         }
     });
 
+    // Client-side auto-repair for common LaTeX mistakes (e.g. missing amsmath for \text, unescaped &)
+    function autoRepairLatex(latex) {
+        let repaired = latex;
+        if (repaired.includes("\\text{") && !repaired.includes("amsmath")) {
+            if (repaired.includes("\\begin{document}")) {
+                repaired = repaired.replace("\\begin{document}", "\\usepackage{amsmath}\n\\begin{document}");
+            } else {
+                repaired = "\\usepackage{amsmath}\n" + repaired;
+            }
+        }
+        const lines = repaired.split("\n");
+        let inTable = false;
+        const newLines = lines.map(line => {
+            const trimmed = line.trim();
+            if (/\\begin\{(tabular|align|array|matrix|pmatrix|bmatrix)\}/.test(trimmed)) {
+                inTable = true;
+            } else if (/\\end\{(tabular|align|array|matrix|pmatrix|bmatrix)\}/.test(trimmed)) {
+                inTable = false;
+            }
+            if (!inTable && line.includes("&")) {
+                return line.replace(/(?<!\\)&/g, "\\&");
+            }
+            return line;
+        });
+        return newLines.join("\n");
+    }
+
     // 7. Compilation & Download Handler
     async function handleCompile(action = "download") {
-        const code = editor.getValue().trim();
-        if (!code) {
+        const rawCode = editor.getValue().trim();
+        if (!rawCode) {
             showToast("error", "Missing Code", "Please paste or enter LaTeX code first.");
             editor.focus();
             return;
         }
+
+        // Apply auto-repair to fix missing amsmath and unescaped &
+        const code = autoRepairLatex(rawCode);
 
         let pdfName = pdfNameInput.value.trim();
         if (!pdfName) {
